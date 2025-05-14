@@ -1,7 +1,5 @@
-exceptiongroup==1.2.2
-iniconfig==2.1.0
-packaging==25.0
-pluggy==1.5.0
+# dependencies for macos
+
 pyobjc==11.0
 pyobjc-core==11.0
 pyobjc-framework-Accessibility==11.0
@@ -159,5 +157,3 @@ pyobjc-framework-VideoToolbox==11.0
 pyobjc-framework-Virtualization==11.0
 pyobjc-framework-Vision==11.0
 pyobjc-framework-WebKit==11.0
-pytest==8.3.5
-tomli==2.2.1
