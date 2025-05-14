@@ -1,8 +1,8 @@
-## alt-line-simple-beacon (detector)
+## alternative line-simple-beacon (detector)
 
 ### notice
 
-- this script is macOS only.
+- This script is macOS only.
 
 ## Requirements for macOS
 
@@ -18,7 +18,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### scan BT devices near by
+### scan BT devices nearby
 
 ```
 python3 detector.py
