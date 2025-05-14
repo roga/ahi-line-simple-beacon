@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ## Usage
 
 ```
-python simplebeacon.py --hwid <HWID> [--message <DEVICE_MESSAGE>]
+python broadcaster.py --hwid <HWID> [--message <DEVICE_MESSAGE>]
 ```
 
 - `--hwid`: **Required**, 10 hexadecimal characters (5 bytes), obtain from LINE Official Account Manager.
@@ -31,7 +31,7 @@ python simplebeacon.py --hwid <HWID> [--message <DEVICE_MESSAGE>]
 
 ### Example
 
-```bash
+```
 python broadcaster.py --hwid 018741a0bd --message 012345
 ```
 
