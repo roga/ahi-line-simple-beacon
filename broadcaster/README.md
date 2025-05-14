@@ -1,4 +1,4 @@
-## alt-line-simple-beacon (broadcaster)
+## alternative line-simple-beacon (broadcaster)
 
 A cross-platform command-line tool for broadcasting [LINE Simple Beacon](https://github.com/line/line-simple-beacon) signals using Bluetooth Low Energy (BLE).
 
