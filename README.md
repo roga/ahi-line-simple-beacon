@@ -1,4 +1,4 @@
-## alt-line-simple-beacon
+## ahs-line-simple-beacon
 
 a humble substitute for [line-simple-beacon](https://github.com/line/line-simple-beacon)
 
