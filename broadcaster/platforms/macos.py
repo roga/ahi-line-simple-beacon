@@ -1,6 +1,6 @@
 """
 LINE Simple Beacon macOS platform implementation
-Using CoreBluetooth framework, NOT WORK FOR NOW.
+Use CoreBluetooth framework
 """
 
 import objc
@@ -17,18 +17,18 @@ CoreBluetooth = objc.loadBundle(
     bundle_path='/System/Library/Frameworks/CoreBluetooth.framework'
 )
 
-# Load required classes
+# Load needed classes
 NSObject = objc.lookUpClass('NSObject')
 NSData = objc.lookUpClass('NSData')
 CBPeripheralManager = objc.lookUpClass('CBPeripheralManager')
 CBUUID = objc.lookUpClass('CBUUID')
 
 # Load Foundation classes
-from Foundation import NSMutableDictionary, NSString
+from Foundation import NSMutableDictionary, NSString, NSArray
 
 
 class MacOSBeaconDelegate(NSObject):
-    """CoreBluetooth peripheral manager delegate"""
+    """CoreBluetooth Peripheral Manager Delegate"""
     
     def initWithTransmitter_(self, transmitter):
         """Initialize delegate
@@ -45,7 +45,7 @@ class MacOSBeaconDelegate(NSObject):
         return self
     
     def peripheralManagerDidUpdateState_(self, peripheral):
-        """Callback when Bluetooth state changes"""
+        """Callback function when Bluetooth state changes"""
         states = {
             0: "Unknown",
             1: "Resetting",
@@ -62,19 +62,23 @@ class MacOSBeaconDelegate(NSObject):
         if state == 5:  # CBPeripheralManagerStatePoweredOn
             self.transmitter._set_initialized_state(True)
             self._init_complete = True
+            # Stop event loop after getting PoweredOn state.
+            AppHelper.stopEventLoop()
         else:
             self.transmitter._set_initialized_state(False)
             self.transmitter._set_advertising_state(False)
             self._init_complete = True
     
     def peripheralManagerDidStartAdvertising_error_(self, peripheral, error):
-        """Callback when advertising starts"""
+        """Callback function when broadcasting starts"""
         if error:
-            print(f"DEBUG: Advertising failed with error: {error}")
+            print(f"DEBUG: Broadcasting failed, error: {error}")
             self.transmitter._set_advertising_state(False)
         else:
-            print("DEBUG: Advertising started successfully")
+            print("DEBUG: Broadcasting started successfully")
             self.transmitter._set_advertising_state(True)
+        # Stop event loop after broadcasting starts. Important!
+        AppHelper.stopEventLoop()
 
 class MacOSTransmitter():
     """macOS platform transmitter implementation"""
@@ -95,27 +99,27 @@ class MacOSTransmitter():
         self._is_advertising = state
 
     def _run_event_loop(self, timeout):
-        """Run event loop with timeout
+        """Execute event loop, and set timeout
         
         Args:
-            timeout: Timeout in seconds
+            timeout: timeout in seconds
         """
-        print(f"DEBUG: Running event loop for {timeout}s")
+        print(f"DEBUG: Execute event loop {timeout} seconds")
         try:
             AppHelper.runConsoleEventLoop(timeout)
-            print("DEBUG: Event loop cycle completed")
+            print("DEBUG: Event loop period completed")
         except KeyboardInterrupt:
-            print("DEBUG: KeyboardInterrupt in event loop")
+            print("DEBUG: Event loop interrupted (KeyboardInterrupt)")
             self._should_stop = True
             AppHelper.stopEventLoop()
         except Exception as e:
-            print(f"DEBUG: Exception in event loop: {e}")
+            print(f"DEBUG: Event loop exception: {e}")
     
     def initialize(self) -> bool:
         """Initialize CoreBluetooth
         
         Returns:
-            bool: True if initialization is successful
+            bool: If initialization is successful, return True
         """
         print("DEBUG: Entering initialize()")
         self._delegate = MacOSBeaconDelegate.alloc().initWithTransmitter_(self)
@@ -123,24 +127,30 @@ class MacOSTransmitter():
             self._delegate, None, None
         )
         print("DEBUG: Created delegate and peripheral_manager")
-        print("DEBUG: Waiting for Bluetooth state update... (Press Ctrl+C to exit)")
+        print("DEBUG: Waiting for Bluetooth state update... (Press Ctrl+C to end)")
         try:
-            AppHelper.runConsoleEventLoop()
+            AppHelper.runConsoleEventLoop()  # Start event loop.
         except KeyboardInterrupt:
-            print("DEBUG: KeyboardInterrupt, exiting event loop")
-            AppHelper.stopEventLoop()
-        return self._is_initialized
+            print("DEBUG: KeyboardInterrupt, stop event loop")
+            AppHelper.stopEventLoop() # Ensure stop event loop when Ctrl+C is pressed
+        
+        if self._is_initialized:
+            print("DEBUG: Initialization successful.")
+            return True
+        else:
+            print("DEBUG: Initialization failed.")
+            return False
     
     def start_advertising(self, hwid: str, device_message: str) -> bool:
         """
-        Start advertising LINE Simple Beacon (macOS specific)
+        Start broadcasting LINE Simple Beacon (macOS specific)
         Args:
-            hwid: Hardware ID (10 hex)
-            device_message: Device message (hex)
+            hwid: Hardware ID (10-digit hexadecimal string)
+            device_message: Device message (16-digit hexadecimal string)
         Returns:
-            bool: True if advertising is started successfully
+            bool: If broadcasting starts successfully, return True
         """
-        print("==== DEBUG: start_advertising called ====")
+        print("==== DEBUG: Calling start_advertising ====")
         if not self._is_initialized:
             print("DEBUG: Not initialized!")
             raise Exception("Not initialized")
@@ -150,61 +160,55 @@ class MacOSTransmitter():
             raise Exception("Bluetooth not powered on")
 
         try:
-            print("DEBUG: Creating LINE Simple Beacon Service Data")
+            print("DEBUG: Building LINE Simple Beacon Service Data")
             service_data_bytes = BeaconCore.build_line_simple_beacon_service_data(hwid, device_message)
-            print(f"DEBUG: Service Data (hex): {binascii.hexlify(service_data_bytes).decode()}")
+            print(f"DEBUG: Service Data (hex)：{binascii.hexlify(service_data_bytes).decode()}")
 
-            # assemble CoreBluetooth broadcasting data
+            # Assemble CoreBluetooth broadcast data
             line_service_uuid_str = "FE6F"
-            line_service_cbuuid = CBUUID.UUIDWithString_(line_service_uuid_str)
             beacon_nsdata = NSData.dataWithBytes_length_(service_data_bytes, len(service_data_bytes))
 
             adv_data = NSMutableDictionary.dictionary()
             service_uuids_key = NSString.stringWithString_("CBAdvertisementDataServiceUUIDsKey")
             service_data_key = NSString.stringWithString_("CBAdvertisementDataServiceDataKey")
 
-            adv_data.setObject_forKey_([line_service_cbuuid], service_uuids_key)
-            
+            # Use NSString string directly, don't use CBUUID
+            adv_data.setObject_forKey_([NSString.stringWithString_(line_service_uuid_str)], service_uuids_key)
             service_data_dict = NSMutableDictionary.dictionary()
-            service_data_dict.setObject_forKey_(beacon_nsdata, line_service_cbuuid)
+            service_data_dict.setObject_forKey_(beacon_nsdata, NSString.stringWithString_(line_service_uuid_str))
             adv_data.setObject_forKey_(service_data_dict, service_data_key)
 
-            print(f"DEBUG: Advertising data: {adv_data}")
+            print(f"DEBUG: Broadcast data: {adv_data}")
 
             print("DEBUG: Calling startAdvertising_")
             self._peripheral_manager.startAdvertising_(adv_data)
-            print("DEBUG: startAdvertising_ called, waiting for callback")
+            print("DEBUG: Called startAdvertising_, waiting for callback")
 
-            # wait for broadcasting to start
-            timeout = 10  # seconds
+            # Use timeout and check _is_advertising in the delegate.
+            timeout = 10
             start_time = time.time()
-            while not self._is_advertising and not self._should_stop:
-                elapsed = time.time() - start_time
-                print(f"DEBUG: Waiting... {elapsed:.1f}s (advertising: {self._is_advertising})")
-                if elapsed > timeout:
-                    print("DEBUG: Timeout waiting for advertising callback")
-                    self._peripheral_manager.stopAdvertising()
-                    break
-                self._run_event_loop(0.5)
+            while not self._is_advertising and time.time() - start_time < timeout:
+                self._run_event_loop(0.1)  # Short timeout, to keep the loop responsive.
 
             if self._is_advertising:
-                print("DEBUG: Advertising successfully started!")
+                print("DEBUG: Broadcasting started successfully!")
                 return True
             else:
-                raise Exception("Advertising failed to start")
+                self._peripheral_manager.stopAdvertising()
+                print("DEBUG: Broadcasting did not start after timeout.")
+                return False
 
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
             print(f"DEBUG ERROR: {e}\n{error_details}")
-            raise Exception(f"Advertising failed: {e}")
+            raise Exception(f"Broadcasting failed: {e}")
     
     def stop_advertising(self) -> bool:
-        """Stop advertising
+        """Stop broadcasting
         
         Returns:
-            bool: True if stopping is successful
-
+            bool: If stopping is successful, return True
         """
         if not self._is_advertising:
             return True
@@ -212,9 +216,11 @@ class MacOSTransmitter():
         try:
             self._peripheral_manager.stopAdvertising()
             self._set_advertising_state(False)
+            print("DEBUG: Broadcasting stopped.")
             return True
             
         except Exception as e:
+            print(f"DEBUG ERROR: Error stopping broadcasting: {e}")
             raise Exception(f"Stopping failed: {e}")
     
     def get_platform_info(self) -> Dict[str, Any]:
@@ -239,3 +245,4 @@ class MacOSTransmitter():
         self._delegate = None
         self._set_initialized_state(False)
         self._set_advertising_state(False)
+        print("DEBUG: Resources cleaned up.")
