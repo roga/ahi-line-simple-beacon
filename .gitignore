@@ -1,4 +1,6 @@
 .idea/
 .vscode/
 broadcast/__pycache__/
+broadcast/platforms/__pycache__/
+broadcast/core/__pycache__/
 detector/__pycache__/
