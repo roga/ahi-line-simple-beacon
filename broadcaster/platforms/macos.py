@@ -1,6 +1,6 @@
 """
 LINE Simple Beacon macOS platform implementation
-使用 CoreBluetooth framework
+Use CoreBluetooth framework
 """
 
 import objc
@@ -28,13 +28,13 @@ from Foundation import NSMutableDictionary, NSString, NSArray
 
 
 class MacOSBeaconDelegate(NSObject):
-    """CoreBluetooth 周邊設備管理員代理"""
+    """CoreBluetooth Peripheral Manager Delegate"""
     
     def initWithTransmitter_(self, transmitter):
-        """初始化代理
+        """Initialize delegate
         
         Args:
-            transmitter: MacOSTransmitter 實例
+            transmitter: MacOSTransmitter instance
         """
         self = objc.super(MacOSBeaconDelegate, self).init()
         if self is None:
@@ -45,7 +45,7 @@ class MacOSBeaconDelegate(NSObject):
         return self
     
     def peripheralManagerDidUpdateState_(self, peripheral):
-        """藍牙狀態改變時的回呼函式"""
+        """Callback function when Bluetooth state changes"""
         states = {
             0: "Unknown",
             1: "Resetting",
@@ -57,7 +57,7 @@ class MacOSBeaconDelegate(NSObject):
         
         state = peripheral.state()
         state_name = states.get(state, "Unknown")
-        print(f"藍牙狀態：{state_name}")
+        print(f"Bluetooth state: {state_name}")
         
         if state == 5:  # CBPeripheralManagerStatePoweredOn
             self.transmitter._set_initialized_state(True)
@@ -70,12 +70,12 @@ class MacOSBeaconDelegate(NSObject):
             self._init_complete = True
     
     def peripheralManagerDidStartAdvertising_error_(self, peripheral, error):
-        """廣播開始時的回呼函式"""
+        """Callback function when broadcasting starts"""
         if error:
-            print(f"DEBUG: 廣播失敗，錯誤：{error}")
+            print(f"DEBUG: Broadcasting failed, error: {error}")
             self.transmitter._set_advertising_state(False)
         else:
-            print("DEBUG: 廣播成功開始")
+            print("DEBUG: Broadcasting started successfully")
             self.transmitter._set_advertising_state(True)
         # Stop event loop after broadcasting starts. Important!
         AppHelper.stopEventLoop()
