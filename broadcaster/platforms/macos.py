@@ -26,9 +26,6 @@ CBUUID = objc.lookUpClass('CBUUID')
 # Load Foundation classes
 from Foundation import NSMutableDictionary, NSString
 
-# Define CoreBluetooth constants
-kCBAdvDataServiceUUIDs = NSString.stringWithString_("kCBAdvDataServiceUUIDs")
-kCBAdvDataServiceData = NSString.stringWithString_("kCBAdvDataServiceData")
 
 class MacOSBeaconDelegate(NSObject):
     """CoreBluetooth peripheral manager delegate"""
@@ -167,8 +164,9 @@ class MacOSTransmitter():
             service_data_key = NSString.stringWithString_("CBAdvertisementDataServiceDataKey")
 
             adv_data.setObject_forKey_([line_service_cbuuid], service_uuids_key)
+            
             service_data_dict = NSMutableDictionary.dictionary()
-            service_data_dict.setObject_forKey_(beacon_nsdata, line_service_uuid_str)
+            service_data_dict.setObject_forKey_(beacon_nsdata, line_service_cbuuid)
             adv_data.setObject_forKey_(service_data_dict, service_data_key)
 
             print(f"DEBUG: Advertising data: {adv_data}")
